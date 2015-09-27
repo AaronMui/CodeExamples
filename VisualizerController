@@ -1,0 +1,81 @@
+using UnityEngine;
+using System.Collections;
+
+public class VisualizerController : MonoBehaviour {
+
+	public bool IsActive = false;
+
+	public int detail = 500;
+	public float amplitude = 0.1f;
+	private float startPosition;
+
+	public int VisualizerId;
+
+
+	// Use this for initialization
+	void Start () {
+		startPosition = transform.localPosition.x;
+	}
+	
+	// Update is called once per frame
+	void Update () {
+		if (IsActive) {
+			PlayVisualizer (VisualizerId);
+		} // Pick a visualizer to play
+	}
+
+
+	void PlayVisualizer(int visualizerId)
+	{
+		//Get audio data
+		float[] info = new float[detail];
+		GameObject segmentList = GameObject.Find ("SegmentList");
+		AudioSource audio = segmentList.GetComponent<AudioSource> ();
+		audio.GetOutputData (info, 0);
+		//Audio data is now stored in array float[]
+
+		//Get the intensity of the sound at the current moment
+		float packagedData = 0.0f;
+		for (int i = 0; i < info.Length; i++) {
+			packagedData += System.Math.Abs (info [i]);
+		}
+
+		GameObject lineVisualizer = GameObject.Find ("LineVisualizer");
+		GameObject particleVisualizer = GameObject.Find ("Particle System");
+
+		//BALL LINE VISUALIZER
+		if (visualizerId == 0) {
+			//Turn off other effects
+			//particleVisualizer.SetActive(false);
+
+			//lineVisualizer.SetActive(true);
+			lineVisualizer.transform.localPosition = new Vector3 (startPosition + packagedData * amplitude - 10, 9, 15);
+		}
+
+		//PARTICLE EFFECT VISUALIZER
+		//if (visualizerId == 1) { 
+			//lineVisualizer.SetActive(false); TODO SetActive doesnt work so well since you cant reactivate easily.
+
+			amplitude = Mathf.Sqrt (packagedData) / 150;
+			float songValue = Mathf.Sqrt (packagedData * amplitude);
+
+			ParticleSystem p = particleVisualizer.GetComponent<ParticleSystem>();
+			p.emissionRate = Mathf.Pow(songValue, 5);
+			p.startSize = Mathf.Pow(songValue, 2) / 4 + 1;
+			p.startSpeed = Mathf.Pow(songValue, 2);
+
+			if (packagedData > 100)
+			{
+				p.emissionRate = Mathf.Pow(songValue, 4);
+				p.startSpeed = Mathf.Pow(songValue, 2) * 1.5f;
+			}
+			if (packagedData > 150)
+			{
+				p.emissionRate = Mathf.Pow(songValue, 3);
+				p.startSpeed = Mathf.Pow(songValue, 2) * 2f;
+			}
+			p.startLifetime = 40/p.startSpeed;
+		//}
+
+	}
+}
