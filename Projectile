@@ -1,0 +1,167 @@
+using UnityEngine;
+using System.Collections;
+
+public class ProjectileDragging : MonoBehaviour {
+	public float maxStretch = 3.0f;
+	public float minVel;
+	public LineRenderer pullLine;
+	public LineRenderer aimLine;
+
+	private Ray rayToMouse;
+	private float maxStretchSqr;
+	private bool clickedOn;
+	private Vector3 mouseWorldPoint;
+	private bool triggerMovement;
+	private bool isMoving;
+	private Vector3 launchVelocity;
+	public float launchMagnitude;
+
+	private TurnController turnCon;
+	public int playerNum;
+	public Camera playerCam;
+	private FollowBall followcam;
+
+	public Light hoverGlow;
+	public CamControl camCon;
+
+	private Vector3 floorPosition;
+
+	void Start () {
+		maxStretchSqr = maxStretch * maxStretch;
+		GameObject obj = GameObject.Find ("Controllers");
+		if (obj) {
+			turnCon = obj.GetComponent<TurnController>();
+		}
+		if (playerCam) {
+			followcam = playerCam.GetComponent<FollowBall>();
+		}
+		Init ();
+	}
+
+	public void Init(){
+		mouseWorldPoint = new Vector3 (0, 0, 0);
+		isMoving = false;
+		camCon.angleChangeActive = false;
+		LineRendererSetup ();
+		if(followcam){
+			followcam.player = null;
+		}
+	}
+
+	void Update () {
+		floorPosition = transform.position;
+		floorPosition = new Vector3 (floorPosition.x, 1, floorPosition.z);
+		pullLine.SetPosition (0, floorPosition);
+		aimLine.SetPosition (0, floorPosition);
+
+		pullLine.enabled = false;
+		aimLine.enabled = false;
+
+		if (playerNum == turnCon.playerturn) {
+
+			if (clickedOn && !isMoving) {
+				Dragging ();
+			}
+
+			if (!isMoving) {
+				if (triggerMovement) {
+					if(followcam){
+						followcam.player = this.gameObject;
+						followcam.offset = followcam.transform.position - this.transform.position;
+					}
+					GetComponent<Rigidbody> ().velocity = launchVelocity;
+						//GetComponent<Rigidbody> ().AddTorque (new Vector3 (launchVelocity.z * launchMagnitude, 0, -launchVelocity.x * launchMagnitude));
+						//Debug.Log (launchVelocity.sqrMagnitude);
+					isMoving = true;
+					triggerMovement = false;
+					camCon.angleChangeActive = true;
+				}
+			} 
+			if (isMoving && GetComponent<Rigidbody> ().velocity.sqrMagnitude < 0.1) {
+				Init ();
+				turnCon.SwitchTurn ();
+			}
+		}
+	}
+	
+	void LineRendererSetup () {
+		pullLine.SetPosition(1, floorPosition);
+		aimLine.SetPosition(1, floorPosition);
+	}
+	
+	void OnMouseDown () {
+		if (playerNum == turnCon.playerturn) {
+			clickedOn = true;
+			camCon.clickingObject = true;
+			//camCon.SetViewAngle(false);
+		}
+	}
+	
+	void OnMouseUp () {
+		if (playerNum == turnCon.playerturn) {
+			if (!isMoving && launchVelocity.sqrMagnitude > minVel) {
+				triggerMovement = true;
+			}
+			clickedOn = false;
+			hoverGlow.enabled = false;
+			camCon.clickingObject = false;
+			//camCon.SetViewAngle(true);
+		}
+	}
+
+	void OnCollisionEnter(Collision collision) {
+		if (followcam.player == this.gameObject) {
+			followcam.player = collision.gameObject;
+			followcam.offset = followcam.transform.position - collision.transform.position;
+			if (collision.gameObject.layer == 8) { // HACK
+				//StartCoroutine (Timefreeze ());
+			}
+		}
+
+	}
+	
+	private IEnumerator Timefreeze()
+	{
+		Time.timeScale = 0.01f;
+		yield return new WaitForSeconds(0.005f);
+		Time.timeScale = 1;
+	}
+
+	void Dragging () {
+		hoverGlow.enabled = true;
+		pullLine.enabled = true;
+		aimLine.enabled = true;
+
+		Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+		RaycastHit hit;
+		if (!Physics.Raycast(ray, out hit))
+		{
+			return;
+		}
+		Vector3 targetPos = new Vector3 (hit.point.x, 0, hit.point.z);
+		//pullLine.SetPosition(1, targetPos);
+
+		mouseWorldPoint = targetPos;  
+		Vector3 mouseToSelf = mouseWorldPoint - floorPosition;
+		
+		if (mouseToSelf.sqrMagnitude > maxStretchSqr) {
+			rayToMouse = new Ray(floorPosition, Vector3.zero);
+			rayToMouse.direction = mouseToSelf;
+			mouseWorldPoint = rayToMouse.GetPoint(maxStretch);
+		}
+
+		launchVelocity = -(mouseWorldPoint - floorPosition) * launchMagnitude;
+
+		if (launchVelocity.sqrMagnitude > minVel) {
+			pullLine.SetPosition (1, mouseWorldPoint);
+			int i = 4; //set to size?
+			aimLine.SetPosition (1, floorPosition + new Vector3 ((floorPosition.x - mouseWorldPoint.x) * i, (floorPosition.y - mouseWorldPoint.y) * i, (floorPosition.z - mouseWorldPoint.z) * i));
+
+			transform.LookAt (floorPosition + new Vector3 ((floorPosition.x - mouseWorldPoint.x) * i, (floorPosition.y - mouseWorldPoint.y) * i, (floorPosition.z - mouseWorldPoint.z) * i));
+		} else {
+			pullLine.SetPosition(1, floorPosition);
+			aimLine.SetPosition(1, floorPosition);
+		}
+	}
+	
+}
