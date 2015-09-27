@@ -1,0 +1,47 @@
+using UnityEngine;
+using System.Collections;
+
+public class TimeSync : MonoBehaviour {
+
+	private float previousTime;
+	public float songTime;
+	private float lastPosition;
+	private float songPosition;
+
+	private AudioSource aud;
+
+
+	// Use this for initialization
+	void Start () {
+		StartCoroutine (DelayedInit());
+	}
+
+	IEnumerator DelayedInit(){
+
+		yield return new WaitForSeconds (0.1f);
+
+		GameObject musicLoc = GameObject.Find ("SegmentList");
+		if (musicLoc) {
+			aud = musicLoc.GetComponent<AudioSource> ();
+		}
+		
+		previousTime = (float)AudioSettings.dspTime;
+		lastPosition = 0;
+	}
+	
+	// Update is called once per frame
+	void Update () {
+		if (aud) {
+			if (Time.deltaTime > 0) {
+				songPosition = aud.time;
+
+				songTime += (float)AudioSettings.dspTime - previousTime;
+				previousTime = (float)AudioSettings.dspTime;
+				if (songPosition != lastPosition) {
+					songTime = (songTime + lastPosition) / 2;
+					lastPosition = songPosition;
+				}
+			}
+		}
+	}
+}
