@@ -70,8 +70,6 @@ public class ProjectileDragging : MonoBehaviour {
 						followcam.offset = followcam.transform.position - this.transform.position;
 					}
 					GetComponent<Rigidbody> ().velocity = launchVelocity;
-						//GetComponent<Rigidbody> ().AddTorque (new Vector3 (launchVelocity.z * launchMagnitude, 0, -launchVelocity.x * launchMagnitude));
-						//Debug.Log (launchVelocity.sqrMagnitude);
 					isMoving = true;
 					triggerMovement = false;
 					camCon.angleChangeActive = true;
@@ -93,7 +91,6 @@ public class ProjectileDragging : MonoBehaviour {
 		if (playerNum == turnCon.playerturn) {
 			clickedOn = true;
 			camCon.clickingObject = true;
-			//camCon.SetViewAngle(false);
 		}
 	}
 	
@@ -105,7 +102,6 @@ public class ProjectileDragging : MonoBehaviour {
 			clickedOn = false;
 			hoverGlow.enabled = false;
 			camCon.clickingObject = false;
-			//camCon.SetViewAngle(true);
 		}
 	}
 
@@ -113,9 +109,6 @@ public class ProjectileDragging : MonoBehaviour {
 		if (followcam.player == this.gameObject) {
 			followcam.player = collision.gameObject;
 			followcam.offset = followcam.transform.position - collision.transform.position;
-			if (collision.gameObject.layer == 8) { // HACK
-				//StartCoroutine (Timefreeze ());
-			}
 		}
 
 	}
@@ -139,7 +132,6 @@ public class ProjectileDragging : MonoBehaviour {
 			return;
 		}
 		Vector3 targetPos = new Vector3 (hit.point.x, 0, hit.point.z);
-		//pullLine.SetPosition(1, targetPos);
 
 		mouseWorldPoint = targetPos;  
 		Vector3 mouseToSelf = mouseWorldPoint - floorPosition;
@@ -163,5 +155,4 @@ public class ProjectileDragging : MonoBehaviour {
 			aimLine.SetPosition(1, floorPosition);
 		}
 	}
-	
 }
